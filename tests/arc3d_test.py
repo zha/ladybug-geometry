@@ -4,6 +4,7 @@ import pytest
 from ladybug_geometry.geometry3d.arc import Arc3D
 from ladybug_geometry.geometry3d.plane import Plane
 from ladybug_geometry.geometry3d.pointvector import Point3D, Vector3D
+from ladybug_geometry.geometry3d.polyline import Polyline3D
 
 from ladybug_geometry.geometry2d.arc import Arc2D
 
@@ -134,6 +135,15 @@ def test_arc3_init_from_start_mid_end():
     with pytest.raises(Exception):
         arc = Arc3D.from_start_mid_end(p1, m, p2)
 
+def test_arc3_init_from_start_mid_end_flipped():
+    """Test the init of Arc3D objects from_start_mid_end using a flipped plane."""
+    p1 = Point3D(-91.47, 40.40, 0.76)
+    m = Point3D(0.06, 23.23, 97.27)
+    p2 = Point3D(91.49, 40.35, 0.99)
+    arc = Arc3D.from_start_mid_end(p1, m, p2)
+
+    assert arc.midpoint.z > 0
+
 
 def test_arc3_to_from_dict():
     """Test the initalization of Arc3D objects and basic properties."""
@@ -151,6 +161,21 @@ def test_arc3_to_from_dict():
     assert isinstance(new_arc, Arc3D)
     assert new_arc.is_circle
     assert new_arc.to_dict() == arc_dict
+
+
+def test_equality():
+    """Test the equality of Arc3D objects."""
+    pt = Point3D(2, 0, 2)
+    arc = Arc3D(Plane(o=pt), 1, 0, math.pi)
+    arc_dup = arc.duplicate()
+    arc_alt = Arc3D(Plane(o=Point3D(2, 0.1, 2)), 1, 0.1, math.pi)
+
+    assert arc is arc
+    assert arc is not arc_dup
+    assert arc == arc_dup
+    assert hash(arc) == hash(arc_dup)
+    assert arc != arc_alt
+    assert hash(arc) != hash(arc_alt)
 
 
 def test_move():
@@ -275,6 +300,19 @@ def test_subdivide():
     assert len(divisions) == 5
 
 
+def test_to_polyline():
+    """Test the Arc3D to_polyline methods."""
+    pt = Point3D(2, 0, 2)
+    arc = Arc3D(Plane(o=pt), 1, 1.5 * math.pi, 0.5 * math.pi)
+
+    pline = arc.to_polyline(4, True)
+    assert isinstance(pline, Polyline3D)
+    assert pline.vertices[0] == arc.p1
+    assert pline.vertices[-1] == arc.p2
+    assert len(pline.vertices) == 5
+    assert pline.interpolated
+
+
 def test_point_at_angle():
     """Test the Arc3D point_at_angle method."""
     pt = Point3D(2, 0)
@@ -300,6 +338,26 @@ def test_arc3_closest_point():
     assert arc.distance_to_point(Point3D(3, 1)) == pytest.approx(2.0424428, rel=1e-2)
     assert arc.distance_to_point(Point3D(3, -1, 2)) == pytest.approx(1, rel=1e-2)
     assert arc.distance_to_point(Point3D(1, -1, 2)) == pytest.approx(1, rel=1e-2)
+
+
+def test_arc3_intersect_with_plane():
+    """Test the Arc3D intersect_with_plane method."""
+    pt = Point3D(2, 0, 2)
+    arc = Arc3D(Plane(o=pt), 1, 0, math.pi)
+    circle = Arc3D(Plane(o=pt), 1)
+
+    plane_1 = Plane(Vector3D(0, 1, 0), Point3D(0, 0, 0))
+    int1 = circle.intersect_plane(plane_1)
+
+    assert len(int1) == 2
+    assert int1[0].x == pytest.approx(3, rel=1e-2)
+    assert int1[0].y == pytest.approx(0, rel=1e-2)
+    assert int1[1].x == pytest.approx(1, rel=1e-2)
+    assert int1[1].y == pytest.approx(0, rel=1e-2)
+
+    plane_2 = Plane(Vector3D(0, 1, 0), Point3D(0, 0.5, 0))
+    int2 = arc.intersect_plane(plane_2)
+    assert len(int2) == 2
 
 
 def test_arc3_split_with_plane():

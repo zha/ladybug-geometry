@@ -32,8 +32,7 @@ class Plane(object):
     __slots__ = ('_n', '_o', '_k', '_x', '_y')
 
     def __init__(self, n=Vector3D(0, 0, 1), o=Point3D(0, 0, 0), x=None):
-        """Initilize Plane.
-        """
+        """Initilize Plane."""
         assert isinstance(n, Vector3D), \
             "Expected Vector3D for plane normal. Got {}.".format(type(n))
         assert isinstance(o, Point3D), \
@@ -53,7 +52,7 @@ class Plane(object):
             assert isinstance(x, Vector3D), \
                 "Expected Vector3D for plane X-axis. Got {}.".format(type(x))
             x = x.normalize()
-            assert abs(self._n.x * x.x + self._n.y * x.y + self._n.z * x.z) < 1e-9, \
+            assert abs(self._n.x * x.x + self._n.y * x.y + self._n.z * x.z) < 1e-2, \
                 'Plane X-axis and normal vector are not orthagonal. Got angle of {} ' \
                 'degrees between them.'.format(math.degrees(self._n.angle(x)))
             self._x = x
@@ -205,11 +204,26 @@ class Plane(object):
         """Get a Point3D from a Point2D in the coordinate system of this plane."""
         # This method returns the same result as the following code:
         # self.o + (self.x * point.x) + (self.y * point.y)
-        # It has been wirtten explicitly to cut out the isinstance() calls for speed
+        # It has been wirtten explicitly to cut out the isinstance() checks for speed
         _u = (self.x.x * point.x, self.x.y * point.x, self.x.z * point.x)
         _v = (self.y.x * point.y, self.y.y * point.y, self.y.z * point.y)
         return Point3D(
             self.o.x + _u[0] + _v[0], self.o.y + _u[1] + _v[1], self.o.z + _u[2] + _v[2])
+    
+    def is_point_above(self, point):
+        """Test if a given point is above or below this plane.
+        
+        Above is defined as being on the side of the plane that the plane normal
+        is pointing towards.
+
+        Args:
+            point: A Point3D object to test.
+
+        Returns:
+            True is point is above; False if below.
+        """
+        vec = Vector3D(point.x - self.o.x, point.y - self.o.y, point.z - self.o.z)
+        return self.n.dot(vec) > 0
 
     def closest_point(self, point):
         """Get the closest Point3D on this plane to another Point3D.
@@ -361,13 +375,20 @@ class Plane(object):
                 'x': self.x.to_array()}
 
     def __copy__(self):
-        return self.__class__(self.n, self.o)
+        return Plane(self.n, self.o, self.x)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (self.n, self.o, self.x)
+
+    def __hash__(self):
+        return hash(self.__key())
 
     def __eq__(self, other):
-        if isinstance(other, Plane):
-            return self.n == other.n and self.o == other.o and self.x == other.x
-        else:
-            return False
+        return isinstance(other, Plane) and self.__key() == other.__key()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

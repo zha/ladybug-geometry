@@ -18,17 +18,14 @@ class LineSegment3D(Base1DIn3D):
         * v
         * p1
         * p2
+        * midpoint
         * length
     """
     __slots__ = ()
 
     def __init__(self, p, v):
-        """Initilize LineSegment3D.
-        """
-        assert isinstance(p, Point3D), "Expected Point3D. Got {}.".format(type(p))
-        assert isinstance(v, Vector3D), "Expected Vector3D. Got {}.".format(type(v))
-        self._p = p
-        self._v = v
+        """Initilize LineSegment3D."""
+        Base1DIn3D.__init__(self, p, v)
 
     @classmethod
     def from_end_points(cls, p1, p2):
@@ -50,6 +47,16 @@ class LineSegment3D(Base1DIn3D):
             length: A number representing the length of the line segment.
         """
         return cls(s, d * length / d.magnitude)
+
+    @classmethod
+    def from_array(cls, line_array):
+        """ Create a LineSegment3D from a nested array of two endpoint coordinates.
+
+        Args:
+            line_arry: Nested tuples ((pt1.x, pt1.y, pt.z), (pt2.x, pt2.y, pt.z)),
+                where pt1 and pt2 represent the endpoints of the line segment.
+        """
+        return LineSegment3D.from_end_points(*tuple(Point3D(*pt) for pt in line_array))
 
     @property
     def p1(self):
@@ -156,6 +163,8 @@ class LineSegment3D(Base1DIn3D):
         """
         if isinstance(distances, (float, int)):
             distances = [distances]
+        # this assert prevents the while loop from being infinite
+        assert sum(distances) > 0, 'Segment subdivisions must be greater than 0'
         line_length = self.length
         dist = distances[0]
         index = 0
@@ -175,6 +184,8 @@ class LineSegment3D(Base1DIn3D):
             number: Integer for the number of segments into which the line will
                 be divided.
         """
+        # this assert prevents the while loop from being infinite
+        assert number > 0, 'Segment subdivisions must be greater than 0'
         interval = 1 / number
         parameter = interval
         sub_pts = [self.p]
@@ -201,23 +212,50 @@ class LineSegment3D(Base1DIn3D):
         """
         return self.p + self.v * (length / self.length)
 
+    def split_with_plane(self, plane):
+        """Split this LineSegment3D in 2 smaller LineSegment3Ds using a Plane.
+
+        Args:
+            plane: A Plane that will be used to split this line segment.
+
+        Returns:
+            A list of two LineSegment3D objects if the split was successful.
+            Will be a list with 1 LineSegment3D if no intersection exists.
+        """
+        _plane_int = self.intersect_plane(plane)
+        if _plane_int is not None:
+            return [LineSegment3D.from_end_points(self.p1, _plane_int),
+                    LineSegment3D.from_end_points(_plane_int, self.p2)]
+        return [self]
+
     def to_dict(self):
         """Get LineSegment3D as a dictionary."""
         base = Base1DIn3D.to_dict(self)
         base['type'] = 'LineSegment3D'
         return base
 
+    def to_array(self):
+        """ A nested list representing the two line endpoint coordinates."""
+        return (self.p1.to_array(), self.p2.to_array())
+
     def _u_in(self, u):
         return u >= 0.0 and u <= 1.0
 
     def __abs__(self):
         return abs(self.v)
+    
+    def __copy__(self):
+        return LineSegment3D(self.p, self.v)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.p), hash(self.v))
+
+    def __hash__(self):
+        return hash(self.__key())
 
     def __eq__(self, other):
-        if isinstance(other, LineSegment3D):
-            return self.p == other.p and self.v == other.v
-        else:
-            return False
+        return isinstance(other, LineSegment3D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'LineSegment3D (<%.2f, %.2f, %.2f> to <%.2f, %.2f, %.2f>)' % \

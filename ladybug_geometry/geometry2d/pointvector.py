@@ -9,6 +9,10 @@ import operator
 class Vector2D(object):
     """2D Vector object.
 
+    Args:
+        x: Number for the X coordinate.
+        y: Number for the Y coordinate.
+
     Properties:
         * x
         * y
@@ -48,6 +52,10 @@ class Vector2D(object):
                 values of the point.
         """
         return cls(array[0], array[1])
+
+    def to_array(self):
+        """Get Vector2D/Point2D as a tuple of two numbers"""
+        return (self.x, self.y)
 
     @property
     def x(self):
@@ -156,10 +164,6 @@ class Vector2D(object):
                 'x': self.x,
                 'y': self.y}
 
-    def to_array(self):
-        """Get Vector2D/Point2D as a tuple of two numbers"""
-        return (self.x, self.y)
-
     def _cast_to_float(self, value):
         """Ensure that an input coordinate value is a float."""
         try:
@@ -187,11 +191,16 @@ class Vector2D(object):
     def __copy__(self):
         return self.__class__(self.x, self.y)
 
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (self.x, self.y)
+
+    def __hash__(self):
+        return hash(self.__key())
+
     def __eq__(self, other):
-        if isinstance(other, (Vector2D, Point2D)):
-            return self.x == other.x and self.y == other.y
-        else:
-            return False
+        return isinstance(other, (Vector2D, Point2D)) and \
+            self.__key() == other.__key()
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -303,6 +312,10 @@ class Vector2D(object):
 class Point2D(Vector2D):
     """2D Point object.
 
+    Args:
+        x: Number for the X coordinate.
+        y: Number for the Y coordinate.
+
     Properties:
         * x
         * y
@@ -324,7 +337,7 @@ class Point2D(Vector2D):
             angle: An angle for rotation in radians.
             origin: A Point2D for the origin around which the point will be rotated.
         """
-        return Point2D._rotate(self - origin, angle) + origin
+        return Vector2D._rotate(self - origin, angle) + origin
 
     def reflect(self, normal, origin):
         """Get a point reflected across a plane with the input normal vector and origin.
@@ -334,7 +347,7 @@ class Point2D(Vector2D):
                 which the point will be reflected. THIS VECTOR MUST BE NORMALIZED.
             origin: A Point2D representing the origin from which to reflect.
         """
-        return Point2D._reflect(self - origin, normal) + origin
+        return Vector2D._reflect(self - origin, normal) + origin
 
     def scale(self, factor, origin=None):
         """Scale a point by a factor from an origin point.
@@ -379,23 +392,38 @@ class Point2D(Vector2D):
     def __add__(self, other):
         # Point + Vector -> Point
         # Point + Point -> Vector
-        if isinstance(other, Vector2D):
-            return Point2D(self.x + other.x, self.y + other.y)
-        elif isinstance(other, Point2D):
+        if isinstance(other, Point2D):
             return Vector2D(self.x + other.x, self.y + other.y)
+        elif isinstance(other, Vector2D):
+            return Point2D(self.x + other.x, self.y + other.y)
         else:
             raise TypeError('Cannot add Point2D and {}'.format(type(other)))
 
     def __sub__(self, other):
         # Point - Vector -> Point
         # Point - Point -> Vector
-        if isinstance(other, Vector2D):
-            return Point2D(self.x - other.x, self.y - other.y)
-        elif isinstance(other, Point2D):
+        if isinstance(other, Point2D):
             return Vector2D(self.x - other.x, self.y - other.y)
+        elif isinstance(other, Vector2D):
+            return Point2D(self.x - other.x, self.y - other.y)
         else:
             raise TypeError('Cannot subtract Point2D and {}'.format(type(other)))
 
     def __repr__(self):
         """Point2D representation."""
         return 'Point2D (%.2f, %.2f)' % (self.x, self.y)
+
+    def __lt__(self, other):
+        """ Lesser then inequality method. This is used by certain external
+        data structure libraries to efficiently store and retrieve point data.
+        """
+        if isinstance(other, Vector2D):
+            return self.x < other.x
+
+    def __gt__(self, other):
+        """ Greater then inequality method. This is used by certain external
+        data structure libraries to efficiently store and retrieve point data.
+        """
+        if isinstance(other, Vector2D):
+            return self.x > other.x
+

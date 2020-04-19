@@ -31,20 +31,14 @@ class Polygon2D(Base2DIn2D):
         * is_convex
         * is_self_intersecting
         * is_valid
-
-
     """
-    __slots__ = ('_segments', '_triangulated_mesh', '_perimeter', '_area',
+    __slots__ = ('_segments', '_perimeter', '_area',
                  '_is_clockwise', '_is_convex', '_is_self_intersecting')
 
     def __init__(self, vertices):
-
-        self._vertices = self._check_vertices_input(vertices)
+        """Initilize Polygon2D."""
+        Base2DIn2D.__init__(self, vertices)
         self._segments = None
-        self._triangulated_mesh = None
-        self._min = None
-        self._max = None
-        self._center = None
         self._perimeter = None
         self._area = None
         self._is_clockwise = None
@@ -66,6 +60,15 @@ class Polygon2D(Base2DIn2D):
             }
         """
         return cls(tuple(Point2D.from_array(pt) for pt in data['vertices']))
+
+    @classmethod
+    def from_array(cls, point_array):
+        """Create a Polygon2D from a nested array of vertex coordinates.
+
+        Args:
+            point_array: nested array of point arrays.
+        """
+        return Polygon2D(Point2D(*point) for point in point_array)
 
     @classmethod
     def from_rectangle(cls, base_point, height_vector, base, height):
@@ -233,7 +236,7 @@ class Polygon2D(Base2DIn2D):
     def segments(self):
         """Tuple of all line segments in the polygon."""
         if self._segments is None:
-            _segs = Polygon2D._segments_from_vertices(self.vertices)
+            _segs = self._segments_from_vertices(self.vertices)
             self._segments = tuple(_segs)
         return self._segments
 
@@ -319,6 +322,47 @@ class Polygon2D(Base2DIn2D):
         """
         return not self.area == 0
 
+    def is_equivalent(self, other, tolerance):
+        """Boolean noting equivalence (within tolerance) between this polygon and another.
+
+        The order of the polygon vertices do not have to start from the
+        same vertex for equivalence to be true, but must be in the same counterclockwise
+        or clockwise order.
+
+        Args:
+            other: Polygon2D for comparison.
+            tolerance: float representing point equivalence.
+
+        Returns:
+            True if equivalent else False
+        """
+
+        # Check number of points
+        if len(self.vertices) != len(other.vertices):
+            return False
+
+        vertices = self.vertices
+
+        # Check order
+        if not vertices[0].is_equivalent(other.vertices[0], tolerance):
+            self_idx = None
+            other_pt = other.vertices[0]
+            for i, pt in enumerate(self.vertices):
+                if pt.is_equivalent(other_pt, tolerance):
+                    self_idx = i
+                    break
+
+            if self_idx is None:
+                return False
+
+            # Re-order polygon vertices to match other
+            vertices = vertices[self_idx:] + vertices[:self_idx]
+
+        is_equivalent = True
+        for pt, other_pt in zip(vertices[1:], other.vertices[1:]):
+            is_equivalent = is_equivalent and pt.is_equivalent(other_pt, tolerance)
+        return is_equivalent
+
     def remove_colinear_vertices(self, tolerance):
         """Get a version of this polygon without colinear or duplicate vertices.
 
@@ -327,7 +371,7 @@ class Polygon2D(Base2DIn2D):
                 before it is considered colinear.
         """
         if len(self.vertices) == 3:
-            return self
+            return self  # Polygon2D cannot have fewer than 3 vertices
         new_vertices = []
         for i, _v in enumerate(self.vertices):
             _a = self[i - 2].determinant(self[i - 1]) + self[i - 1].determinant(_v) + \
@@ -494,7 +538,7 @@ class Polygon2D(Base2DIn2D):
         While this method covers most fringe cases, it will not test for whether
         a point lies perfectly on the edge of the polygon so it assesses whether
         a point lies inside the polygon up to Python floating point tolerance
-        (1e-16). If distinguishing edge conditions from inside/ outside is
+        (16 digits). If distinguishing edge conditions from inside/ outside is
         important, the `point_relationship` method should be used.
 
         Args:
@@ -646,6 +690,10 @@ class Polygon2D(Base2DIn2D):
         return {'type': 'Polygon2D',
                 'vertices': [pt.to_array() for pt in self.vertices]}
 
+    def to_array(self):
+        """Get a list of lists whenre each sub-list represents a Point2D vetex."""
+        return tuple(pt.to_array() for pt in self.vertices)
+
     @staticmethod
     def intersect_polygon_segments(polygon_list, tolerance):
         """Intersect the line segments of a Polygon2D array to ensure matching segments.
@@ -696,11 +744,11 @@ class Polygon2D(Base2DIn2D):
         polygon1_updates = []
         polygon2_updates = []
 
-        # Bounding rectangle check
+        # bounding rectangle check
         if not Polygon2D.overlapping_bounding_rect(polygon1, polygon2, tolerance):
             return polygon1, polygon2  # no overlap
 
-        # Test if each point of polygon2 is within the tolerance distance of any segment
+        # test if each point of polygon2 is within the tolerance distance of any segment
         # of polygon1.  If so, add the closest point on the segment to the polygon1
         # update list. And vice versa (testing polygon2 against polygon1).
         for i1, seg1 in enumerate(polygon1.segments):
@@ -709,24 +757,18 @@ class Polygon2D(Base2DIn2D):
                 x = closest_point2d_on_line2d(seg2.p1, seg1)
                 if all(p.distance_to_point(x) > tolerance for p in polygon1.vertices) \
                         and x.distance_to_point(seg2.p1) <= tolerance:
-                    polygon1_updates.append([i1, x])
+                    polygon1_updates.append((i1, x))
                 # Test polygon2 against polygon1
                 y = closest_point2d_on_line2d(seg1.p1, seg2)
                 if all(p.distance_to_point(y) > tolerance for p in polygon2.vertices) \
                         and y.distance_to_point(seg1.p1) <= tolerance:
-                    polygon2_updates.append([i2, y])
+                    polygon2_updates.append((i2, y))
 
-        # Apply any updates to polygon1
-        poly_points = list(polygon1.vertices)
-        for update in polygon1_updates[::-1]:  # Traverse backwards to preserve order
-            poly_points.insert(update[0] + 1, update[1])
-        polygon1 = Polygon2D(poly_points)
+        # apply any updates to polygon1
+        polygon1 = Polygon2D._insert_updates_in_order(polygon1, polygon1_updates)
 
         # Apply any updates to polygon2
-        poly_points = list(polygon2.vertices)
-        for update in polygon2_updates[::-1]:  # Traverse backwards to preserve order
-            poly_points.insert(update[0] + 1, update[1])
-        polygon2 = Polygon2D(poly_points)
+        polygon2 = Polygon2D._insert_updates_in_order(polygon2, polygon2_updates)
 
         return polygon1, polygon2
 
@@ -770,6 +812,39 @@ class Polygon2D(Base2DIn2D):
         new_polygon._is_convex = self._is_convex
         new_polygon._is_self_intersecting = self._is_self_intersecting
         new_polygon._is_clockwise = self._is_clockwise
+
+    @staticmethod
+    def _insert_updates_in_order(polygon, polygon_updates):
+        """Insert updates from the intersect_segments method into a polygon.
+
+        This method ensures that multiple updates to a single segment are inserted
+        in the correct order over the polygon.
+
+        Args:
+            polygon: A Polygon2D to be updated with intersection points
+            polygon_updates: A list of tuples where each tuple has two values. The
+                first is the index of the segment to be updated and the second is
+                the point to insert.
+        """
+        poly_points = list(polygon.vertices)
+        last_i = -1
+        colinear_count = 0
+        for update in polygon_updates[::-1]:  # traverse backwards to preserve order
+            new_i = update[0] + 1
+            if new_i == last_i:  # check order of new intersections on the same segment
+                colinear_count += 1
+                p1 = poly_points[update[0]]
+                for i, pt in enumerate(poly_points[new_i:new_i + colinear_count]):
+                    if p1.distance_to_point(pt) > p1.distance_to_point(update[1]):
+                        poly_points.insert(new_i + i, update[1])
+                        break
+                else:
+                    poly_points.insert(new_i + colinear_count, update[1])
+            else:
+                colinear_count = 0
+                poly_points.insert(new_i, update[1])
+            last_i = new_i
+        return Polygon2D(poly_points)
 
     @staticmethod
     def _segments_from_vertices(vertices):
@@ -831,8 +906,17 @@ class Polygon2D(Base2DIn2D):
         return _a < 0
 
     def __copy__(self):
-        _new_poly = Polygon2D(self.vertices)
-        return _new_poly
+        return Polygon2D(self._vertices)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Polygon2D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'Polygon2D ({} vertices)'.format(len(self))

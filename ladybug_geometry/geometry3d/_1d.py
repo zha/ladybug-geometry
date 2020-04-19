@@ -4,7 +4,7 @@ from __future__ import division
 
 from .pointvector import Point3D, Vector3D
 from ..intersection3d import closest_point3d_on_line3d, \
-    closest_point3d_on_line3d_infinite
+    closest_point3d_on_line3d_infinite, intersect_line3d_plane
 
 
 class Base1DIn3D(object):
@@ -21,8 +21,7 @@ class Base1DIn3D(object):
     __slots__ = ('_p', '_v')
 
     def __init__(self, p, v):
-        """Initilize Base1DIn3D.
-        """
+        """Initilize Base1DIn3D."""
         assert isinstance(p, Point3D), "Expected Point3D. Got {}.".format(type(p))
         assert isinstance(v, Vector3D), "Expected Vector3D. Got {}.".format(type(v))
         self._p = p
@@ -114,6 +113,18 @@ class Base1DIn3D(object):
         close_pt = self.closest_point(point)
         return point.distance_to_point(close_pt)
 
+    def intersect_plane(self, plane):
+        """Get the intersection between this object and a Plane.
+
+        Args:
+            plane: A Plane that will be intersected with this object.
+
+        Returns:
+            A Point3D object if the intersection was successful.
+            None if no intersection exists.
+        """
+        return intersect_line3d_plane(self, plane)
+
     def duplicate(self):
         """Get a copy of this object."""
         return self.__copy__()
@@ -125,6 +136,19 @@ class Base1DIn3D(object):
 
     def __copy__(self):
         return self.__class__(self.p, self.v)
+    
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.p), hash(self.v))
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Base1DIn3D) and self.__key() == other.__key()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

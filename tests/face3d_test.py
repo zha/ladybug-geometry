@@ -45,6 +45,23 @@ def test_face3d_init():
     assert face.vertices[0] == face[0]
 
 
+def test_equality():
+    """Test the equality of Face3D objects."""
+    pts = (Point3D(0, 0, 2), Point3D(0, 2, 2), Point3D(2, 2, 2), Point3D(2, 0, 2))
+    pts_2 = (Point3D(0.1, 0, 2), Point3D(0, 2, 2), Point3D(2, 2, 2), Point3D(2, 0, 2))
+    plane = Plane(Vector3D(0, 0, 1), Point3D(0, 0, 2))
+    face = Face3D(pts, plane)
+    face_dup = face.duplicate()
+    face_alt = Face3D(pts_2, plane)
+
+    assert face is face
+    assert face is not face_dup
+    assert face == face_dup
+    assert hash(face) == hash(face_dup)
+    assert face != face_alt
+    assert hash(face) != hash(face_alt)
+
+
 def test_face3d_to_from_dict():
     """Test the to/from dict of Face3D objects."""
     pts = (Point3D(0, 0, 2), Point3D(0, 2, 2), Point3D(2, 2, 2), Point3D(2, 0, 2))
@@ -380,6 +397,24 @@ def test_is_sub_face():
     assert face.is_sub_face(sub_face_3, 0.0001, 0.0001) is False
     assert face.is_sub_face(sub_face_4, 0.0001, 0.0001) is False
     assert face.is_sub_face(sub_face_5, 0.0001, 0.0001) is False
+
+
+def test_is_point_on_face():
+    """Test the is_point_on_face method."""
+    bound_pts = [Point3D(0, 0), Point3D(4, 0), Point3D(4, 4), Point3D(0, 4)]
+    sub_pt_1 = Point3D(1, 1)
+    sub_pt_2 = Point3D(3, 2)
+    sub_pt_3 = Point3D(6, 2)
+    sub_pt_4 = Point3D(6, 6)
+    sub_pt_5 = Point3D(2, 0, 2)
+    plane_1 = Plane(Vector3D(0, 0, 1))
+    face = Face3D(bound_pts, plane_1)
+
+    assert face.is_point_on_face(sub_pt_1, 0.0001) is True
+    assert face.is_point_on_face(sub_pt_2, 0.0001) is True
+    assert face.is_point_on_face(sub_pt_3, 0.0001) is False
+    assert face.is_point_on_face(sub_pt_4, 0.0001) is False
+    assert face.is_point_on_face(sub_pt_5, 0.0001) is False
 
 
 def test_clockwise():
@@ -1125,3 +1160,29 @@ def test_sub_faces_by_ratio():
     assert len(sub_faces_2) == 4
     areas = [srf.area for srf in sub_faces_2]
     assert sum(areas) == pytest.approx(face_2.area * 0.5, rel=1e-3)
+
+
+def test_sub_faces_by_dimension_rectangle():
+    """Test the sub_faces_by_dimension_rectangle method."""
+    pts_1 = (Point3D(0, 0, 0), Point3D(0, 0, 2), Point3D(2, 0, 2), Point3D(2, 0, 0))
+    pts_2 = (Point3D(0, 0, 0), Point3D(0, 0, 2), Point3D(4, 0, 2), Point3D(4, 0, 0))
+    plane = Plane(Vector3D(0, 0, 1))
+    face_1 = Face3D(pts_1)
+    face_2 = Face3D(pts_2)
+    sub_face_height = 1.0
+    sill_height = 1.0
+    rect_height = 2.0
+    div_dist = 1.0
+
+    sub_faces_1 = face_1.sub_faces_by_dimension_rectangle(
+        sub_face_height, 3.0, sill_height, div_dist, 0.1)
+    assert len(sub_faces_1) == 1
+    segs_1 = sub_faces_1[0].boundary_segments
+    assert segs_1[1].length == sub_face_height
+
+    sub_faces_2 = face_2.sub_faces_by_dimension_rectangle(
+        sub_face_height, 1.0, sill_height, div_dist, 0.1)
+    assert len(sub_faces_2) == 3
+    segs_2 = sub_faces_2[0].boundary_segments
+    assert segs_2[0].length == 1.0
+    assert segs_2[1].length == sub_face_height

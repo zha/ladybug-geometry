@@ -10,6 +10,13 @@ if (sys.version_info > (3, 0)):  # python 3
 class MeshBase(object):
     """Base class for all Mesh objects.
 
+    Args:
+        vertices: A list or tuple of Point objects for vertices.
+        faces: A list of tuples with each tuple having either 3 or 4 integers.
+            These integers correspond to indices within the list of vertices.
+        colors: An optional list of colors that correspond to either the faces
+            of the mesh or the vertices of the mesh. Default is None.
+
     Properties:
         * vertices
         * faces
@@ -24,15 +31,7 @@ class MeshBase(object):
                  '_area', '_face_areas', '_face_centroids', '_vertex_connected_faces')
 
     def __init__(self, vertices, faces, colors=None):
-        """Initilize MeshBase.
-
-        Args:
-            vertices: A list or tuple of Point objects for vertices.
-            faces: A list of tuples with each tuple having either 3 or 4 integers.
-                These integers correspond to indices within the list of vertices.
-            colors: An optional list of colors that correspond to either the faces
-                of the mesh or the vertices of the mesh. Default is None.
-        """
+        """Initilize MeshBase."""
         self._vertices = vertices
         self._faces = self._check_faces_input(faces)
         self._is_color_by_face = False  # default if colors is None
@@ -331,13 +330,30 @@ class MeshBase(object):
         return vertices, face_collector
 
     def __len__(self):
-        return len(self.vertices)
+        return len(self._vertices)
 
     def __getitem__(self, key):
-        return self.vertices[key]
+        return self._vertices[key]
 
     def __iter__(self):
-        return iter(self.vertices)
+        return iter(self._vertices)
+
+    def __copy__(self):
+        return MeshBase(self._vertices, self._faces, self._colors)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices) + \
+            tuple(hash(face) for face in self._faces)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, MeshBase) and self.__key() == other.__key()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

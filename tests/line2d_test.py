@@ -65,8 +65,8 @@ def test_init_from_sdl():
     assert seg.length == 2
 
 
-def test_linesegment2_mutability():
-    """Test the mutability and immutability of LineSegement2D objects."""
+def test_linesegment2_immutability():
+    """Test the immutability of LineSegement2D objects."""
     pt = Point2D(2, 0)
     vec = Vector2D(0, 2)
     seg = LineSegment2D(pt, vec)
@@ -84,6 +84,22 @@ def test_linesegment2_mutability():
     seg_copy = seg.duplicate()
     assert seg.p == seg_copy.p
     assert seg.v == seg_copy.v
+
+
+def test_equality():
+    """Test the equality of LineSegement2D objects."""
+    pt = Point2D(2, 0)
+    vec = Vector2D(0, 2)
+    seg = LineSegment2D(pt, vec)
+    seg_dup = seg.duplicate()
+    seg_alt = LineSegment2D(Point2D(2, 0.1), vec)
+
+    assert seg is seg
+    assert seg is not seg_dup
+    assert seg == seg_dup
+    assert hash(seg) == hash(seg_dup)
+    assert seg != seg_alt
+    assert hash(seg) != hash(seg_alt)
 
 
 def test_move():
@@ -274,3 +290,19 @@ def test_closest_points_between_line():
 
     assert seg_1.distance_to_line(seg_2) == 1
     assert seg_1.distance_to_line(seg_3) == pytest.approx(1.41421, rel=1e-3)
+
+
+def test_to_from_array():
+    """Test to/from array method"""
+    test_line = LineSegment2D.from_end_points(Point2D(2, 0), Point2D(2, 2))
+    line_array = ((2, 0), (2, 2))
+
+    assert test_line == LineSegment2D.from_array(line_array)
+
+    line_array = ((2, 0), (2, 2))
+    test_line = LineSegment2D.from_end_points(Point2D(2, 0), Point2D(2, 2))
+
+    assert test_line.to_array() == line_array
+
+    test_line_2 = LineSegment2D.from_array(test_line.to_array())
+    assert test_line == test_line_2

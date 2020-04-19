@@ -33,8 +33,8 @@ def test_ray2_to_from_dict():
     assert new_ray.to_dict() == ray_dict
 
 
-def test_ray2d_mutability():
-    """Test the mutability and immutability of Ray2D objects."""
+def test_ray2d_immutability():
+    """Test the immutability of Ray2D objects."""
     pt = Point2D(2, 0)
     vec = Vector2D(0, 2)
     ray = Ray2D(pt, vec)
@@ -52,6 +52,22 @@ def test_ray2d_mutability():
     ray_copy = ray.duplicate()
     assert ray.p == ray_copy.p
     assert ray.v == ray_copy.v
+
+
+def test_equality():
+    """Test the equality of Ray2D objects."""
+    pt = Point2D(2, 0)
+    vec = Vector2D(0, 2)
+    ray = Ray2D(pt, vec)
+    ray_dup = ray.duplicate()
+    ray_alt = Ray2D(Point2D(2, 0.1), vec)
+
+    assert ray is ray
+    assert ray is not ray_dup
+    assert ray == ray_dup
+    assert hash(ray) == hash(ray_dup)
+    assert ray != ray_alt
+    assert hash(ray) != hash(ray_alt)
 
 
 def test_move():
@@ -188,3 +204,19 @@ def test_intersect_line_ray():
 
     assert ray_1.intersect_line_ray(ray_2) == Point2D(2, 3)
     assert ray_1.intersect_line_ray(ray_3) == Point2D(2, 2)
+
+
+def test_to_from_array():
+    """Test to/from array method."""
+    test_ray = Ray2D(Point2D(2, 0), Vector2D(2, 2))
+    ray_array = ((2, 0), (2, 2))
+
+    assert test_ray == Ray2D.from_array(ray_array)
+
+    ray_array = ((2, 0), (2, 2))
+    test_ray = Ray2D(Point2D(2, 0), Vector2D(2, 2))
+
+    assert test_ray.to_array() == ray_array
+
+    test_ray_2 = Ray2D.from_array(test_ray.to_array())
+    assert test_ray == test_ray_2

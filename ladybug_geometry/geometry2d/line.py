@@ -19,17 +19,14 @@ class LineSegment2D(Base1DIn2D):
         * v
         * p1
         * p2
+        * midpoint
         * length
     """
     __slots__ = ()
 
     def __init__(self, p, v):
-        """Initilize LineSegment2D.
-        """
-        assert isinstance(p, Point2D), "Expected Point2D. Got {}.".format(type(p))
-        assert isinstance(v, Vector2D), "Expected Vector2D. Got {}.".format(type(v))
-        self._p = p
-        self._v = v
+        """Initilize LineSegment2D."""
+        Base1DIn2D.__init__(self, p, v)
 
     @classmethod
     def from_end_points(cls, p1, p2):
@@ -39,7 +36,8 @@ class LineSegment2D(Base1DIn2D):
             p1: A Point2D representing the first point of the line segment.
             p2: A Point2D representing the second point of the line segment.
         """
-        return cls(p1, p2 - p1)
+        v = p2 - p1
+        return cls(p1, Vector2D(v.x, v.y))
 
     @classmethod
     def from_sdl(cls, s, d, length):
@@ -52,6 +50,16 @@ class LineSegment2D(Base1DIn2D):
         """
         return cls(s, d * length / d.magnitude)
 
+    @classmethod
+    def from_array(cls, line_array):
+        """ Create a LineSegment2D from a nested array of two endpoint coordinates.
+
+        Args:
+            line_arry: Nested tuples ((pt1.x, pt1.y), (pt2.x, pt2.y)), where
+                pt1 and pt2 represent the endpoints of the line segment.
+        """
+        return LineSegment2D.from_end_points(*tuple(Point2D(*pt) for pt in line_array))
+
     @property
     def p1(self):
         """First point (same as p)."""
@@ -61,6 +69,11 @@ class LineSegment2D(Base1DIn2D):
     def p2(self):
         """Second point."""
         return Point2D(self.p.x + self.v.x, self.p.y + self.v.y)
+
+    @property
+    def endpoints(self):
+        """ Tuple of endpoints """
+        return (self.p1, self.p2)
 
     @property
     def midpoint(self):
@@ -206,17 +219,28 @@ class LineSegment2D(Base1DIn2D):
         base['type'] = 'LineSegment2D'
         return base
 
+    def to_array(self):
+        """ A nested list representing the two line endpoint coordinates."""
+        return (self.p1.to_array(), self.p2.to_array())
+
     def _u_in(self, u):
         return u >= 0.0 and u <= 1.0
 
     def __abs__(self):
         return abs(self.v)
 
+    def __copy__(self):
+        return LineSegment2D(self.p, self.v)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.p), hash(self.v))
+
+    def __hash__(self):
+        return hash(self.__key())
+
     def __eq__(self, other):
-        if isinstance(other, LineSegment2D):
-            return self.p == other.p and self.v == other.v
-        else:
-            return False
+        return isinstance(other, LineSegment2D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'LineSegment2D (<%.2f, %.2f> to <%.2f, %.2f>)' % \

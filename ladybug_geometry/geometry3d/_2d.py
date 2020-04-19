@@ -20,8 +20,7 @@ class Base2DIn3D(object):
     __slots__ = ('_vertices', '_min', '_max', '_center')
 
     def __init__(self, vertices):
-        """Initilize Base2DIn3D.
-        """
+        """Initilize Base2DIn3D."""
         self._vertices = self._check_vertices_input(vertices)
         self._min = None
         self._max = None
@@ -93,16 +92,29 @@ class Base2DIn3D(object):
         return vertices
 
     def __len__(self):
-        return len(self.vertices)
+        return len(self._vertices)
 
     def __getitem__(self, key):
-        return self.vertices[key]
+        return self._vertices[key]
 
     def __iter__(self):
-        return iter(self.vertices)
+        return iter(self._vertices)
 
     def __copy__(self):
         return Base2DIn3D(self._vertices)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Base2DIn3D) and self.__key() == other.__key()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

@@ -7,6 +7,7 @@ from .plane import Plane
 from ..geometry2d.pointvector import Point2D, Vector2D
 from ..geometry2d.ray import Ray2D
 from ..geometry2d.arc import Arc2D
+from .polyline import Polyline3D
 
 import math
 
@@ -38,8 +39,7 @@ class Arc3D(object):
     __slots__ = ('_plane', '_arc2d')
 
     def __init__(self, plane, radius, a1=0, a2=2*math.pi):
-        """Initilize Arc3D.
-        """
+        """Initilize Arc3D."""
         assert isinstance(plane, Plane), "Expected Plane. Got {}.".format(type(plane))
         self._plane = plane
         self._arc2d = Arc2D(Point2D(0, 0), radius, a1, a2)
@@ -281,14 +281,14 @@ class Arc3D(object):
         close_pt = self.closest_point(point)
         return point.distance_to_point(close_pt)
 
-    def split_with_plane(self, plane):
-        """Split this Arc3D in 2 or 3 smaller arcs using a Plane.
+    def intersect_plane(self, plane):
+        """Get the intersection between this Arc3D and a Plane.
 
         Args:
-            plane: A Plane that will be used to split this arc.
+            plane: A Plane that will be intersected with this arc.
 
         Returns:
-            A list with two Arc3D objects if the split was successful.
+            A list of Point3D objects if the intersection was successful.
             None if no intersection exists.
         """
         _plane_int_ray = plane.intersect_plane(self.plane)
@@ -297,20 +297,55 @@ class Arc3D(object):
             _p22d = self.plane.xyz_to_xy(_plane_int_ray.p + _plane_int_ray.v)
             _v2d = _p22d - _p12d
             _int_ray2d = Ray2D(_p12d, _v2d)
-            _int_pt2d = self.arc2d.split_line_infinite(_int_ray2d)
+            _int_pt2d = self.arc2d.intersect_line_infinite(_int_ray2d)
             if _int_pt2d is not None:
-                return [Arc3D(self.plane, self.radius, arc.a1, arc.a2)
-                        for arc in _int_pt2d]
+                return [self.plane.xy_to_xyz(pt) for pt in _int_pt2d]
         return None
 
-    def duplicate(self):
-        """Get a copy of this object."""
-        return self.__copy__()
+    def split_with_plane(self, plane):
+        """Split this Arc3D in 2 or 3 smaller arcs using a Plane.
+
+        Args:
+            plane: A Plane that will be used to split this arc.
+
+        Returns:
+            A list with two or three Arc3D objects if the split was successful.
+            Will be a list with 1 Arc3D if no intersection exists.
+        """
+        _plane_int_ray = plane.intersect_plane(self.plane)
+        if _plane_int_ray is not None:
+            _p12d = self.plane.xyz_to_xy(_plane_int_ray.p)
+            _p22d = self.plane.xyz_to_xy(_plane_int_ray.p + _plane_int_ray.v)
+            _v2d = _p22d - _p12d
+            _int_ray2d = Ray2D(_p12d, _v2d)
+            _int_pt2d = self.arc2d.split_line_infinite(_int_ray2d)
+            if len(_int_pt2d) != 1:
+                return [Arc3D(self.plane, self.radius, arc.a1, arc.a2)
+                        for arc in _int_pt2d]
+        return [self]
+
+    def to_polyline(self, divisions, interpolated=True):
+        """Get this Arc3D as an approximated Polyline3D.
+        
+        Args:
+            divisions: The number of segments into which the arc will be divided.
+            interpolated: Boolean to note whether the polyline should be interpolated
+                between the input vertices when it is translated to other interfaces.
+                This property has no effect on the geometric calculations performed
+                by this library and is only present in order to assist with
+                display/translation. (Default: True)
+        """
+        pts = self.subdivide_evenly(divisions)
+        return Polyline3D(pts, interpolated)
 
     def to_dict(self):
         """Get Arc3D as a dictionary."""
         return {'type': 'Arc3D', 'plane': self.plane.to_dict(),
                 'radius': self.radius, 'a1': self.a1, 'a2': self.a2}
+
+    def duplicate(self):
+        """Get a copy of this object."""
+        return self.__copy__()
 
     @staticmethod
     def _plane_from_vertices(pt1, pt2, pt3):
@@ -324,7 +359,20 @@ class Arc3D(object):
         return Plane(n, pt1)
 
     def __copy__(self):
-        return self.__class__(self.plane, self.radius, self.a1, self.a2)
+        return Arc3D(self.plane, self.radius, self.a1, self.a2)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.plane), self.radius, self.a1, self.a2)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Arc3D) and self.__key() == other.__key()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

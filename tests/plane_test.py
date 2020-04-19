@@ -40,6 +40,22 @@ def test_plane_init():
     assert plane_flip.k == 0
 
 
+def test_equality():
+    """Test the equality of Plane objects."""
+    pt = Point3D(2, 0, 2)
+    vec = Vector3D(0, 2, 0)
+    plane = Plane(vec, pt)
+    plane_dup = plane.duplicate()
+    plane_alt = Plane(vec, Point3D(2, 0.1, 2))
+
+    assert plane is plane
+    assert plane is not plane_dup
+    assert plane == plane_dup
+    assert hash(plane) == hash(plane_dup)
+    assert plane != plane_alt
+    assert hash(plane) != hash(plane_alt)
+
+
 def test_plane_to_from_dict():
     """Test the initalization of Plane objects and basic properties."""
     pt = Point3D(2, 0, 2)
@@ -291,6 +307,17 @@ def test_xy_to_xyz():
     test_pt = Point2D(-1, -1)
     assert plane.xy_to_xyz(test_pt) == Point3D(1, 1, 2)
     assert isinstance(plane.xy_to_xyz(test_pt), Point3D)
+
+
+def test_is_point_above():
+    """Test the Plane is_point_above method."""
+    plane = Plane()
+    assert plane.is_point_above(Point3D(0, 0, 1))
+    assert not plane.is_point_above(Point3D(0, 0, -1))
+
+    plane = Plane(n=Vector3D(1, 0, 0))
+    assert not plane.is_point_above(Point3D(-1, 0, 1))
+    assert plane.is_point_above(Point3D(1, 0, -1))
 
 
 def test_closest_point():

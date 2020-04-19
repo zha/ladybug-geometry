@@ -3,6 +3,7 @@
 from __future__ import division
 
 from .pointvector import Point2D, Vector2D
+from .polyline import Polyline2D
 from ..intersection2d import closest_point2d_on_arc2d, intersect_line2d_arc2d, \
     intersect_line2d_infinite_arc2d
 
@@ -243,11 +244,10 @@ class Arc2D(object):
         interval = 1 / number
         parameter = interval
         sub_pts = [self.p1]
-        while parameter < 1:
+        while parameter <= 1:
             sub_pts.append(self.point_at(parameter))
             parameter += interval
-        sub_pts.append(self.p2)
-        return sub_pts
+        return sub_pts 
 
     def point_at(self, parameter):
         """Get a point at a given fraction along the arc.
@@ -320,7 +320,7 @@ class Arc2D(object):
         return intersect_line2d_arc2d(line_ray, self)
 
     def intersect_line_infinite(self, line_ray):
-        """Get the intersection between this Arc2D and an infinitely extending Ray2D .
+        """Get the intersection between this Arc2D and an infinitely extending Ray2D.
 
         Args:
             line_ray: Another LineSegment2D or Ray2D or to intersect.
@@ -341,14 +341,14 @@ class Arc2D(object):
 
         Returns:
             A list with 2 or 3 Arc2D objects if the split was successful.
-            None if no intersection exists.
+            Will be a list with 1 Arc2D if no intersection exists.
         """
         inters = intersect_line2d_infinite_arc2d(line_ray, self)
         if inters is None:
-            return None
+            return [self]
         elif self.is_circle:
             if len(inters) != 2:
-                return None
+                return [self]
             a1 = self._a_from_pt(inters[0])
             a2 = self._a_from_pt(inters[1])
             return [Arc2D(self.c, self.r, a1, a2), Arc2D(self.c, self.r, a2, a1)]
@@ -368,14 +368,28 @@ class Arc2D(object):
                         Arc2D(self.c, self.r, am2, am1),
                         Arc2D(self.c, self.r, am1, self.a2)]
 
-    def duplicate(self):
-        """Get a copy of this object."""
-        return self.__copy__()
+    def to_polyline(self, divisions, interpolated=True):
+        """Get this Arc2D as an approximated Polyline2D.
+        
+        Args:
+            divisions: The number of segments into which the arc will be divided.
+            interpolated: Boolean to note whether the polyline should be interpolated
+                between the input vertices when it is translated to other interfaces.
+                This property has no effect on the geometric calculations performed
+                by this library and is only present in order to assist with
+                display/translation. (Default: True)
+        """
+        pts = self.subdivide_evenly(divisions)
+        return Polyline2D(pts, interpolated)
 
     def to_dict(self):
         """Get Arc2D as a dictionary."""
         return {'type': 'Arc2D', 'c': self.c.to_array(),
                 'r': self.r, 'a1': self.a1, 'a2': self.a2}
+
+    def duplicate(self):
+        """Get a copy of this object."""
+        return self.__copy__()
 
     def _pt_in(self, point):
         if self.is_circle:
@@ -397,7 +411,20 @@ class Arc2D(object):
         return _diff if not angle < self.a1 else 2 * math.pi + _diff
 
     def __copy__(self):
-        return self.__class__(self.c, self.r, self.a1, self.a2)
+        return Arc2D(self.c, self.r, self.a1, self.a2)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (self.c, self.r, self.a1, self.a2)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Arc2D) and self.__key() == other.__key()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

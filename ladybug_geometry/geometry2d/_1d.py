@@ -9,6 +9,10 @@ from ..intersection2d import intersect_line2d, closest_point2d_on_line2d
 class Base1DIn2D(object):
     """Base class for all 1D geometries in 2D space (Ray2D and LineSegment2D).
 
+    Args:
+        p: A Point2D representing the base.
+        v: A Vector2D representing the direction.
+
     Properties:
         * p
         * v
@@ -16,12 +20,7 @@ class Base1DIn2D(object):
     __slots__ = ('_p', '_v')
 
     def __init__(self, p, v):
-        """Initilize Base1DIn2D.
-
-        Args:
-            p: A Point2D representing the base.
-            v: A Vector2D representing the direction.
-        """
+        """Initilize Base1DIn2D."""
         assert isinstance(p, Point2D), "Expected Point2D. Got {}.".format(type(p))
         assert isinstance(v, Vector2D), "Expected Vector2D. Got {}.".format(type(v))
         self._p = p
@@ -100,6 +99,19 @@ class Base1DIn2D(object):
 
     def __copy__(self):
         return self.__class__(self.p, self.v)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.p), hash(self.v))
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Base1DIn2D) and self.__key() == other.__key()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def ToString(self):
         """Overwrite .NET ToString."""

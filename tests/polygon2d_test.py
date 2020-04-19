@@ -30,11 +30,34 @@ def test_polygon2d_init():
 
     assert polygon.area == 4
     assert polygon.perimeter == 8
-    assert polygon.is_clockwise is False
-    assert polygon.is_convex is True
-    assert polygon.is_self_intersecting is False
+    assert not polygon.is_clockwise
+    assert polygon.is_convex
+    assert not polygon.is_self_intersecting
 
     assert polygon.vertices[0] == polygon[0]
+
+    p_array = polygon.to_array()
+    assert isinstance(p_array, tuple)
+    assert len(p_array) == 4
+    for arr in p_array:
+        assert isinstance(p_array, tuple)
+        assert len(arr) == 2
+
+
+def test_equality():
+    """Test the equality of Polygon2D objects."""
+    pts = (Point2D(0, 0), Point2D(2, 0), Point2D(2, 2), Point2D(0, 2))
+    pts_2 = (Point2D(0, 0), Point2D(2, 0), Point2D(2, 2), Point2D(0.1, 2))
+    polygon = Polygon2D(pts)
+    polygon_dup = polygon.duplicate()
+    polygon_alt = Polygon2D(pts_2)
+
+    assert polygon is polygon
+    assert polygon is not polygon_dup
+    assert polygon == polygon_dup
+    assert hash(polygon) == hash(polygon_dup)
+    assert polygon != polygon_alt
+    assert hash(polygon) != hash(polygon_alt)
 
 
 def test_polygon2d_to_from_dict():
@@ -64,9 +87,9 @@ def test_polygon2d_init_from_rectangle():
 
     assert polygon.area == 4
     assert polygon.perimeter == 8
-    assert polygon.is_clockwise is False
-    assert polygon.is_convex is True
-    assert polygon.is_self_intersecting is False
+    assert not polygon.is_clockwise
+    assert polygon.is_convex
+    assert not polygon.is_self_intersecting
 
 
 def test_polygon2d_init_from_regular_polygon():
@@ -85,9 +108,9 @@ def test_polygon2d_init_from_regular_polygon():
 
     assert polygon.area == pytest.approx(11.3137084, rel=1e-3)
     assert polygon.perimeter == pytest.approx(1.5307337 * 8, rel=1e-3)
-    assert polygon.is_clockwise is False
-    assert polygon.is_convex is True
-    assert polygon.is_self_intersecting is False
+    assert not polygon.is_clockwise
+    assert polygon.is_convex
+    assert not polygon.is_self_intersecting
 
     polygon = Polygon2D.from_regular_polygon(3)
     assert len(polygon.vertices) == 3
@@ -115,9 +138,9 @@ def test_polygon2d_init_from_shape_with_hole():
 
     assert polygon.area == 12
     assert polygon.perimeter == pytest.approx(26.828427, rel=1e-3)
-    assert polygon.is_clockwise is False
-    assert polygon.is_convex is False
-    assert polygon.is_self_intersecting is False
+    assert not polygon.is_clockwise
+    assert not polygon.is_convex
+    assert not polygon.is_self_intersecting
 
 
 def test_polygon2d_init_from_shape_with_holes():
@@ -139,9 +162,9 @@ def test_polygon2d_init_from_shape_with_holes():
 
     assert polygon.area == 16 - 1.25
     assert polygon.perimeter == pytest.approx(26.24264068, rel=1e-3)
-    assert polygon.is_clockwise is False
-    assert polygon.is_convex is False
-    assert polygon.is_self_intersecting is False
+    assert not polygon.is_clockwise
+    assert not polygon.is_convex
+    assert not polygon.is_self_intersecting
 
 
 def test_clockwise():
@@ -151,9 +174,9 @@ def test_clockwise():
     pts_2 = (Point2D(0, 0), Point2D(0, 2), Point2D(2, 2), Point2D(2, 0))
     polygon_2 = Polygon2D(pts_2)
 
-    assert polygon_1.is_clockwise is False
-    assert polygon_2.is_clockwise is True
-    assert polygon_1.reverse().is_clockwise is True
+    assert not polygon_1.is_clockwise
+    assert polygon_2.is_clockwise
+    assert polygon_1.reverse().is_clockwise
 
     assert polygon_1.area == 4
     assert polygon_2.area == 4
@@ -167,8 +190,8 @@ def test_is_convex():
              Point2D(1, 2), Point2D(0, 2))
     polygon_2 = Polygon2D(pts_2)
 
-    assert polygon_1.is_convex is True
-    assert polygon_2.is_convex is False
+    assert polygon_1.is_convex
+    assert not polygon_2.is_convex
 
 
 def test_is_self_intersecting():
@@ -178,8 +201,8 @@ def test_is_self_intersecting():
     pts_2 = (Point2D(0, 0), Point2D(0, 2), Point2D(2, 0), Point2D(2, 2))
     polygon_2 = Polygon2D(pts_2)
 
-    assert polygon_1.is_self_intersecting is False
-    assert polygon_2.is_self_intersecting is True
+    assert not polygon_1.is_self_intersecting
+    assert polygon_2.is_self_intersecting
 
 
 def test_is_valid():
@@ -189,8 +212,8 @@ def test_is_valid():
     polygon_1 = Polygon2D(pts_1)
     polygon_2 = Polygon2D(pts_2)
 
-    assert polygon_1.is_valid is True
-    assert polygon_2.is_valid is False
+    assert polygon_1.is_valid
+    assert not polygon_2.is_valid
 
 
 def test_min_max_center():
@@ -239,7 +262,7 @@ def test_polygon2d_duplicate():
 
 
 def test_reverse():
-    """Test the reverse property."""
+    """Test the reverse method."""
     pts_1 = (Point2D(0, 0), Point2D(2, 0), Point2D(2, 2), Point2D(0, 2))
     polygon = Polygon2D(pts_1)
     new_polygon = polygon.reverse()
@@ -449,17 +472,17 @@ def test_is_point_inside():
     pts = (Point2D(0, 0), Point2D(2, 0), Point2D(2, 2), Point2D(0, 2))
     polygon = Polygon2D(pts)
 
-    assert polygon.is_point_inside(Point2D(-1, 1)) is False
-    assert polygon.is_point_inside(Point2D(1, -1)) is False
-    assert polygon.is_point_inside(Point2D(1, 3)) is False
-    assert polygon.is_point_inside(Point2D(3, 1)) is False
-    assert polygon.is_point_inside(Point2D(1, 1)) is True
+    assert not polygon.is_point_inside(Point2D(-1, 1))
+    assert not polygon.is_point_inside(Point2D(1, -1))
+    assert not polygon.is_point_inside(Point2D(1, 3))
+    assert not polygon.is_point_inside(Point2D(3, 1))
+    assert polygon.is_point_inside(Point2D(1, 1))
 
-    assert polygon.is_point_inside(Point2D(-1, 1), Vector2D(0, 1)) is False
-    assert polygon.is_point_inside(Point2D(1, -1), Vector2D(0, 1)) is False
-    assert polygon.is_point_inside(Point2D(1, 3), Vector2D(0, 1)) is False
-    assert polygon.is_point_inside(Point2D(3, 1), Vector2D(0, 1)) is False
-    assert polygon.is_point_inside(Point2D(1, 1), Vector2D(0, 1)) is True
+    assert not polygon.is_point_inside(Point2D(-1, 1), Vector2D(0, 1))
+    assert not polygon.is_point_inside(Point2D(1, -1), Vector2D(0, 1))
+    assert not polygon.is_point_inside(Point2D(1, 3), Vector2D(0, 1))
+    assert not polygon.is_point_inside(Point2D(3, 1), Vector2D(0, 1))
+    assert polygon.is_point_inside(Point2D(1, 1), Vector2D(0, 1))
 
 
 def test_is_point_inside_bound_rect():
@@ -468,12 +491,12 @@ def test_is_point_inside_bound_rect():
            Point2D(2, 4), Point2D(0, 4))
     polygon = Polygon2D(pts)
 
-    assert polygon.is_point_inside_bound_rect(Point2D(-1, 1)) is False
-    assert polygon.is_point_inside_bound_rect(Point2D(1, -1)) is False
-    assert polygon.is_point_inside_bound_rect(Point2D(1, 5)) is False
-    assert polygon.is_point_inside_bound_rect(Point2D(5, 1)) is False
-    assert polygon.is_point_inside_bound_rect(Point2D(3, 3)) is False
-    assert polygon.is_point_inside(Point2D(1, 1)) is True
+    assert not polygon.is_point_inside_bound_rect(Point2D(-1, 1))
+    assert not polygon.is_point_inside_bound_rect(Point2D(1, -1))
+    assert not polygon.is_point_inside_bound_rect(Point2D(1, 5))
+    assert not polygon.is_point_inside_bound_rect(Point2D(5, 1))
+    assert not polygon.is_point_inside_bound_rect(Point2D(3, 3))
+    assert polygon.is_point_inside(Point2D(1, 1))
 
 
 def test_is_polygon_inside_outside():
@@ -489,15 +512,15 @@ def test_is_polygon_inside_outside():
     hole_3 = Polygon2D(hole_pts_3)
     hole_4 = Polygon2D(hole_pts_4)
 
-    assert polygon.is_polygon_inside(hole_1) is True
-    assert polygon.is_polygon_inside(hole_2) is True
-    assert polygon.is_polygon_inside(hole_3) is False
-    assert polygon.is_polygon_inside(hole_4) is False
+    assert polygon.is_polygon_inside(hole_1)
+    assert polygon.is_polygon_inside(hole_2)
+    assert not polygon.is_polygon_inside(hole_3)
+    assert not polygon.is_polygon_inside(hole_4)
 
-    assert polygon.is_polygon_outside(hole_1) is False
-    assert polygon.is_polygon_outside(hole_2) is False
-    assert polygon.is_polygon_outside(hole_3) is False
-    assert polygon.is_polygon_outside(hole_4) is True
+    assert not polygon.is_polygon_outside(hole_1)
+    assert not polygon.is_polygon_outside(hole_2)
+    assert not polygon.is_polygon_outside(hole_3)
+    assert polygon.is_polygon_outside(hole_4)
 
 
 def test_intersect_segments():
@@ -521,6 +544,35 @@ def test_intersect_segments():
     assert polygon1.vertices[1] == Point2D(1, 2)
     assert polygon1.segments[0].p2 == Point2D(1, 2)
     assert polygon1.segments[1].p1 == Point2D(1, 2)
+
+
+def test_intersect_segments_multiple_intersections():
+    """Tests that polygons having multiple intersections are ordered correctly."""
+    pts1 = (Point2D(0, 0), Point2D(5, 0), Point2D(5, 5), Point2D(0, 5))
+    pts2 = (Point2D(6, 4), Point2D(5, 4), Point2D(5, 3), Point2D(6, 3))
+    pts3 = (Point2D(5, 3), Point2D(6, 3), Point2D(6, 4), Point2D(5, 4))
+    pts4 = (Point2D(7, 4), Point2D(5, 4), Point2D(5, 3), Point2D(6, 3),
+            Point2D(6, 2), Point2D(5, 2), Point2D(5, 1), Point2D(7, 1))
+    pts5 = (Point2D(5, 3), Point2D(6, 3), Point2D(6, 2), Point2D(5, 2),
+            Point2D(5, 1), Point2D(7, 1), Point2D(7, 4), Point2D(5, 4))
+
+    poly1 = Polygon2D(pts1)
+    poly2 = Polygon2D(pts2)
+    poly3 = Polygon2D(pts3)
+    poly4 = Polygon2D(pts4)
+    poly5 = Polygon2D(pts5)
+
+    int_polys1 = Polygon2D.intersect_segments(poly1, poly2, 0.01)
+    int_polys2 = Polygon2D.intersect_segments(poly1, poly3, 0.01)
+    int_polys3 = Polygon2D.intersect_segments(poly1, poly4, 0.01)
+    int_polys4 = Polygon2D.intersect_segments(poly1, poly4, 0.01)
+
+    assert int_polys1[0].vertices == int_polys2[0].vertices == \
+        (Point2D(0, 0), Point2D(5, 0), Point2D(5, 3), Point2D(5, 4),
+         Point2D(5, 5), Point2D(0, 5))
+    assert int_polys3[0].vertices == int_polys4[0].vertices == \
+        (Point2D(0, 0), Point2D(5, 0), Point2D(5, 1), Point2D(5, 2),
+         Point2D(5, 3), Point2D(5, 4), Point2D(5, 5), Point2D(0, 5))
 
 
 def test_intersect_segments_zero_tolerance():
@@ -608,3 +660,30 @@ def test_intersect_polygon_segments_with_3_angled_rectangles():
 
     assert len(polygon1.segments) == 4  # No extra vertex added
     assert len(polygon2.segments) == 4  # No extra vertex added
+
+
+def test_polygon_is_equivalent():
+    """ Test if polygons are equivalent based on point equivalence"""
+
+    tol = 1e-10
+    p1 = Polygon2D.from_array([[0, 0], [6, 0], [7, 3], [0, 4]])
+
+    # Test no points are the same
+    p2 = Polygon2D.from_array([[0, 1], [6, 1], [7, 4]])
+    assert not p1.is_equivalent(p2, tol)
+
+    # Test when length is not same
+    p2 = Polygon2D.from_array([[0, 0], [6, 0], [7, 3]])
+    assert not p1.is_equivalent(p2, tol)
+
+    # Test equal condition same order
+    p2 = Polygon2D.from_array([[0, 0], [6, 0], [7, 3], [0, 4]])
+    assert p1.is_equivalent(p2, tol)
+
+    # Test equal condition different order 1
+    p2 = Polygon2D.from_array([[7, 3], [0, 4], [0, 0], [6, 0]])
+    assert p1.is_equivalent(p2, tol)
+
+    # Test equal condition different order 2
+    p2 = Polygon2D.from_array([[0, 4], [0, 0], [6, 0], [7, 3]])
+    assert p1.is_equivalent(p2, tol)

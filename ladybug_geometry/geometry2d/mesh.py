@@ -4,7 +4,7 @@ from __future__ import division
 
 from .._mesh import MeshBase
 
-from .pointvector import Point2D
+from .pointvector import Point2D, Vector2D
 from .line import LineSegment2D
 from .polygon import Polygon2D
 
@@ -41,8 +41,7 @@ class Mesh2D(MeshBase):
     __slots__ = ('_min', '_max', '_center', '_centroid')
 
     def __init__(self, vertices, faces, colors=None):
-        """Initilize Mesh2D.
-        """
+        """Initilize Mesh2D."""
         self._vertices = self._check_vertices_input(vertices)
         self._faces = self._check_faces_input(faces)
         self._is_color_by_face = False  # default if colors is None
@@ -169,7 +168,7 @@ class Mesh2D(MeshBase):
         # figure out which vertices lie inside the polygon
         # for tolerance reasons, we scale the polygon by a very small amount
         # this avoids the fringe cases noted in the Polygon2d.is_point_inside description
-        tol_pt = Point2D(0.0000001, 0.0000001)
+        tol_pt = Vector2D(0.0000001, 0.0000001)
         scaled_poly = Polygon2D(
             tuple(pt.scale(1.000001, _poly_min) - tol_pt for pt in polygon.vertices))
         _pattern = [scaled_poly.is_point_inside(_v) for _v in _verts]
@@ -604,6 +603,17 @@ class Mesh2D(MeshBase):
         _new_mesh._face_centroids = self._face_centroids
         _new_mesh._centroid = self._centroid
         return _new_mesh
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices) + \
+            tuple(hash(face) for face in self._faces)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Mesh2D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'Ladybug Mesh2D ({} faces) ({} vertices)'.format(

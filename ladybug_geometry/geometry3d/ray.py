@@ -20,12 +20,17 @@ class Ray3D(Base1DIn3D):
     __slots__ = ()
 
     def __init__(self, p, v):
-        """Initilize Ray3D.
+        """Initilize Ray3D."""
+        Base1DIn3D.__init__(self, p, v)
+    
+    @classmethod
+    def from_array(cls, ray_array):
+        """ Create a Ray3D from a nested array with a point and a vector.
+
+        Args:
+            ray_array: Nested tuples ((p.x, p.y), (v.x, v.y)).
         """
-        assert isinstance(p, Point3D), "Expected Point3D. Got {}.".format(type(p))
-        assert isinstance(v, Vector3D), "Expected Vector3D. Got {}.".format(type(v))
-        self._p = p
-        self._v = v
+        return Ray3D(Point3D(*ray_array[0]), Vector3D(*ray_array[1]))
 
     def reverse(self):
         """Get a copy of this ray that is reversed."""
@@ -96,17 +101,25 @@ class Ray3D(Base1DIn3D):
         base['type'] = 'Ray3D'
         return base
 
+    def to_array(self):
+        """A nested array representing the start point and vector."""
+        return (self.p.to_array(), self.v.to_array())
+
     def _u_in(self, u):
         return u >= 0.0
+    
+    def __copy__(self):
+        return Ray3D(self.p, self.v)
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return (hash(self.p), hash(self.v))
+
+    def __hash__(self):
+        return hash(self.__key())
 
     def __eq__(self, other):
-        if isinstance(other, Ray3D):
-            return self.p == other.p and self.v == other.v
-        else:
-            return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+        return isinstance(other, Ray3D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'Ray3D (point <%.2f, %.2f, %.2f>) (vector <%.2f, %.2f, %.2f>)' % \

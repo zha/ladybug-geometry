@@ -33,14 +33,13 @@ class Polyface3D(Base2DIn3D):
             should be formatted as a dictionary with two keys as follows:
 
             *   'edge_indices':
-                A list of tuple objects that each contain two integers.
+                An array objects that each contain two integers.
                 These integers correspond to indices within the vertices list and
                 each tuple represents a line sengment for an edge of the polyface.
             *   'edge_types':
-                A list of integers for each edge that parallels
-                the edge_indices list. An integer of 0 denotes a naked edge, an
-                integer of 1 denotes an internal edge. Anything higher is a
-                non-manifold edge.
+                An array of integers for each edge that parallels the edge_indices
+                list. An integer of 0 denotes a naked edge, an integer of 1
+                denotes an internal edge. Anything higher is a non-manifold edge.
 
     Properties:
         * vertices
@@ -65,10 +64,9 @@ class Polyface3D(Base2DIn3D):
                  '_area', '_volume', '_is_solid')
 
     def __init__(self, vertices, face_indices, edge_information=None):
-        """Initilize Polyface3D.
-        """
+        """Initilize Polyface3D."""
         # assign input properties
-        self._vertices = self._check_vertices_input(vertices)
+        Base2DIn3D.__init__(self, vertices)
         self._face_indices = tuple(tuple(tuple(loop) for loop in face)
                                    for face in face_indices)
 
@@ -107,9 +105,6 @@ class Polyface3D(Base2DIn3D):
         self._naked_edges = None
         self._internal_edges = None
         self._non_manifold_edges = None
-        self._min = None
-        self._max = None
-        self._center = None
         self._area = None
         self._volume = None
 
@@ -745,6 +740,9 @@ class Polyface3D(Base2DIn3D):
                 (v1.x + v2.x / 2), (v1.y + v2.y / 2), (v1.z + v2.z / 2)).normalize()
             move_vec = move_vec * (tolerance + 0.00001)
             point_on_face = face.boundary[0] + move_vec
+            vert2d = face.plane.xyz_to_xy(point_on_face)
+            if not face.polygon2d.is_point_inside(vert2d):  # check that it's on the face
+                point_on_face = face.boundary[0] - move_vec
             test_ray = Ray3D(point_on_face, face.normal)
 
             # if the ray intersects with an even number of other faces, it is correct
@@ -807,6 +805,17 @@ class Polyface3D(Base2DIn3D):
         _new_poly = Polyface3D(self.vertices, self.face_indices, self.edge_information)
         _new_poly._faces = self._faces
         return _new_poly
+    
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices) + \
+            tuple(hash(face) for face in self._face_indices)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Polyface3D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'Polyface3D ({} faces) ({} vertices)'.format(

@@ -42,8 +42,7 @@ class Mesh3D(MeshBase):
     __slots__ = ('_min', '_max', '_center', '_face_normals', '_vertex_normals')
 
     def __init__(self, vertices, faces, colors=None):
-        """Initilize Mesh3D.
-        """
+        """Initilize Mesh3D."""
         self._vertices = self._check_vertices_input(vertices)
         self._faces = self._check_faces_input(faces)
 
@@ -552,6 +551,17 @@ class Mesh3D(MeshBase):
         _new_mesh._face_normals = self._face_normals
         _new_mesh._vertex_normals = self._vertex_normals
         return _new_mesh
+
+    def __key(self):
+        """A tuple based on the object properties, useful for hashing."""
+        return tuple(hash(pt) for pt in self._vertices) + \
+            tuple(hash(face) for face in self._faces)
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        return isinstance(other, Mesh3D) and self.__key() == other.__key()
 
     def __repr__(self):
         return 'Mesh3D ({} faces) ({} vertices)'.format(
