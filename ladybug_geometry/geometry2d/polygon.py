@@ -33,7 +33,8 @@ class Polygon2D(Base2DIn2D):
         * is_valid
     """
     __slots__ = ('_segments', '_perimeter', '_area',
-                 '_is_clockwise', '_is_convex', '_is_self_intersecting')
+                 '_is_clockwise', '_is_convex', '_is_self_intersecting',
+                 '_triangulated_mesh')
 
     def __init__(self, vertices):
         """Initilize Polygon2D."""
@@ -44,6 +45,7 @@ class Polygon2D(Base2DIn2D):
         self._is_clockwise = None
         self._is_convex = None
         self._is_self_intersecting = None
+        self._triangulated_mesh = None  # Temp fix
 
     @classmethod
     def from_dict(cls, data):
