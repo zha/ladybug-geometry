@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ladybug-geometry",
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    # use_scm_version=True,
+    # setup_requires=['setuptools_scm'],
     author="Ladybug Tools",
     author_email="info@ladybug.tools",
     description="Ladybug geometry is a Python library that houses all of the basic geometry computation needed for Ladybug Tools core libraries.",
